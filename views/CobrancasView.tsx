@@ -106,9 +106,7 @@ const BillingsList: React.FC<any> = ({ billings, onEdit, onDelete, onShowActions
                             </span>
                             <div className="flex gap-4">
                                 <button onClick={() => onShowActions(billing)} className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Ações</button>
-                                {billing.equipmentType === 'grua' && (
-                                    <button onClick={() => onEdit(billing)} className="p-1 text-sky-500 dark:text-sky-400" title='Editar Cobrança'><PencilIcon className="w-5 h-5" /></button>
-                                )}
+                                <button onClick={() => onEdit(billing)} className="p-1 text-sky-500 dark:text-sky-400" title='Editar Cobrança'><PencilIcon className="w-5 h-5" /></button>
                                 <button onClick={() => onDelete(billing)} className="p-1 text-red-500 dark:text-red-400" title='Excluir Cobrança'><TrashIcon className="w-5 h-5" /></button>
                             </div>
                         </div>
@@ -163,9 +161,7 @@ const BillingsList: React.FC<any> = ({ billings, onEdit, onDelete, onShowActions
                                     <td className="px-6 py-4 text-center">
                                         <div className="flex justify-center items-center gap-4">
                                             <button onClick={() => onShowActions(billing)} className="text-slate-500 hover:text-indigo-500" title="Mais Ações">Ações</button>
-                                            {billing.equipmentType === 'grua' && (
-                                                <button onClick={() => onEdit(billing)} className="text-slate-500 hover:text-sky-500" title='Editar Cobrança'><PencilIcon className="w-5 h-5" /></button>
-                                            )}
+                                            <button onClick={() => onEdit(billing)} className="text-slate-500 hover:text-sky-500" title='Editar Cobrança'><PencilIcon className="w-5 h-5" /></button>
                                             <button onClick={() => onDelete(billing)} className="text-slate-500 hover:text-red-500" title='Excluir Cobrança'><TrashIcon className="w-5 h-5" /></button>
                                         </div>
                                     </td>

@@ -6,11 +6,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 import { LogoIcon } from '../components/icons/LogoIcon';
 import { UserIcon } from '../components/icons/UserIcon';
-import { SavedUser } from '../types';
+import { SavedUser, EquipmentType } from '../types';
 
 interface LoginViewProps {
   showNotification: (message: string, type: 'success' | 'error') => void;
-  onLoginSuccess: (email: string, password?: string, rememberMe?: boolean) => void;
+  onLoginSuccess: (email: string, password?: string, rememberMe?: boolean, managementTypes?: EquipmentType[]) => void;
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ showNotification, onLoginSuccess }) => {
@@ -20,12 +20,21 @@ const LoginView: React.FC<LoginViewProps> = ({ showNotification, onLoginSuccess 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedUsers, setSavedUsers] = useState<SavedUser[]>([]);
   const [showFullLoginForm, setShowFullLoginForm] = useState(false);
+  const [managementTypes, setManagementTypes] = useState<EquipmentType[]>([]);
 
   useEffect(() => {
     try {
         const usersStr = localStorage.getItem('savedUsers');
         const users: SavedUser[] = usersStr ? JSON.parse(usersStr) : [];
         setSavedUsers(users);
+
+        const savedManagementTypes = localStorage.getItem('managementType');
+        if (savedManagementTypes) {
+            setManagementTypes(JSON.parse(savedManagementTypes));
+        } else {
+            // Default to all types if no preference is saved
+            setManagementTypes(['mesa', 'jukebox', 'grua']);
+        }
 
         const switchEmail = sessionStorage.getItem('switchAccountEmail');
         if (switchEmail) {
@@ -42,19 +51,24 @@ const LoginView: React.FC<LoginViewProps> = ({ showNotification, onLoginSuccess 
             setShowFullLoginForm(true);
         }
     } catch (error) {
-        console.error("Failed to load saved users:", error);
+        console.error("Failed to load saved data:", error);
         setShowFullLoginForm(true);
+        setManagementTypes(['mesa', 'jukebox', 'grua']); // Set default on error too
     }
   }, []);
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    
+    if (managementTypes.length === 0) {
+        showNotification('Você deve selecionar pelo menos um tipo de equipamento para gerenciar.', 'error');
+        return;
+    }
 
+    setIsSubmitting(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      onLoginSuccess(email, password, rememberMe);
+      onLoginSuccess(email, password, rememberMe, managementTypes);
     } catch (error) {
       console.error("Login failed:", error);
       let message = 'Ocorreu um erro no login.';
@@ -97,6 +111,12 @@ const LoginView: React.FC<LoginViewProps> = ({ showNotification, onLoginSuccess 
     setShowFullLoginForm(false);
   }
 
+  const handleManagementTypeChange = (type: EquipmentType) => {
+    setManagementTypes(prev => 
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-slate-100 dark:bg-slate-900 p-4">
       <div className="w-full max-w-md bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700">
@@ -137,7 +157,39 @@ const LoginView: React.FC<LoginViewProps> = ({ showNotification, onLoginSuccess 
                   placeholder="••••••••"
                 />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="pt-2">
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-3">O que você gerencia?</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <label className="flex items-center gap-2 p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 border-2 border-transparent has-[:checked]:border-lime-500 has-[:checked]:bg-lime-500/10 transition-colors">
+                         <input
+                            type="checkbox"
+                            checked={managementTypes.includes('mesa')}
+                            onChange={() => handleManagementTypeChange('mesa')}
+                            className="h-5 w-5 rounded border-slate-400 dark:border-slate-500 text-lime-600 bg-transparent focus:ring-lime-500 focus:ring-offset-0"
+                        />
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-200">Mesas</span>
+                    </label>
+                     <label className="flex items-center gap-2 p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 border-2 border-transparent has-[:checked]:border-lime-500 has-[:checked]:bg-lime-500/10 transition-colors">
+                         <input
+                            type="checkbox"
+                            checked={managementTypes.includes('jukebox')}
+                            onChange={() => handleManagementTypeChange('jukebox')}
+                            className="h-5 w-5 rounded border-slate-400 dark:border-slate-500 text-lime-600 bg-transparent focus:ring-lime-500 focus:ring-offset-0"
+                        />
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-200">Jukebox</span>
+                    </label>
+                     <label className="flex items-center gap-2 p-3 rounded-lg bg-slate-100 dark:bg-slate-700/50 border-2 border-transparent has-[:checked]:border-lime-500 has-[:checked]:bg-lime-500/10 transition-colors">
+                         <input
+                            type="checkbox"
+                            checked={managementTypes.includes('grua')}
+                            onChange={() => handleManagementTypeChange('grua')}
+                            className="h-5 w-5 rounded border-slate-400 dark:border-slate-500 text-lime-600 bg-transparent focus:ring-lime-500 focus:ring-offset-0"
+                        />
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-200">Gruas</span>
+                    </label>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-4">
                 <div className="flex items-center">
                   <input
                     id="remember-me"

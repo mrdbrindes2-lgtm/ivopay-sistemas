@@ -10,7 +10,7 @@ import { CreditCardIcon } from './icons/CreditCardIcon';
 type FormState = {
   relogioAtual: string;
   totalArrecadadoJukebox: string; // Jukebox specific
-  descontoPartidas: string; // Mesa specific
+  partidasDescontadas: string; // Mesa specific
   // Grua specific
   aluguelPercentual: string;
   aluguelValor: string;
@@ -98,14 +98,14 @@ const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose, onConfirm,
   const [jukeboxStep, setJukeboxStep] = useState(1);
   const [gruaStep, setGruaStep] = useState(1);
   
-  const isMonthlyFee = equipment.type === 'mesa' && equipment.billingType === 'monthly';
+  const isMonthlyFee = equipment.type === 'mesa' && equipment.tipoCobranca === 'monthly';
 
   useEffect(() => {
     if (isOpen) {
       const initialState: FormState = {
         relogioAtual: '',
         totalArrecadadoJukebox: '',
-        descontoPartidas: '0',
+        partidasDescontadas: '0',
         aluguelPercentual: String(equipment.aluguelPercentual || ''),
         aluguelValor: String(equipment.aluguelValor || '0'),
         saldo: '',
@@ -134,22 +134,22 @@ const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose, onConfirm,
     const partidasJogadas = isInvalidReading ? 0 : Math.round(relogioAtual) - Math.round(relogioAnterior);
 
     if (equipment.type === 'mesa') {
-      if (equipment.billingType === 'monthly') {
+      if (equipment.tipoCobranca === 'monthly') {
           result = {
-            valorTotal: equipment.monthlyFeeValue || 0,
-            billingType: 'monthly',
+            valorTotal: equipment.mensalidade || 0,
+            tipoCobranca: 'monthly',
             partidasJogadas: partidasJogadas,
             relogioAnterior: equipment.relogioAnterior,
             relogioAtual: Math.round(relogioAtual),
           };
       } else {
-        const descontoPartidas = safeParseFloat(formState.descontoPartidas);
-        const partidasCobradas = Math.max(0, partidasJogadas - descontoPartidas);
+        const partidasDescontadas = safeParseFloat(formState.partidasDescontadas);
+        const partidasPagas = Math.max(0, partidasJogadas - partidasDescontadas);
         const valorFicha = equipment.valorFicha || 0;
-        const valorBruto = partidasCobradas * valorFicha;
+        const valorBruto = partidasPagas * valorFicha;
         const parteFirma = Math.round((valorBruto * ((equipment.parteFirma || 0) / 100)) * 100) / 100;
         const parteCliente = Number((valorBruto - parteFirma).toFixed(2));
-        result = { billingType: 'perPlay', partidasJogadas, descontoPartidas, partidasCobradas, valorTotal: parteFirma, parteFirma, parteCliente, valorFicha, valorBruto };
+        result = { tipoCobranca: 'perPlay', partidasJogadas, partidasDescontadas, partidasPagas, valorTotal: parteFirma, parteFirma, parteCliente, valorFicha, valorBruto };
       }
     } else if (equipment.type === 'jukebox') {
         const valorBruto = safeParseFloat(formState.totalArrecadadoJukebox);
@@ -613,7 +613,7 @@ const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose, onConfirm,
       <div className="space-y-4">
         <h4 className="text-md font-bold text-lime-400">Leitura Anterior: {equipment.relogioAnterior}</h4>
         <FormField label="Leitura Atual" name="relogioAtual" value={formState.relogioAtual} type="text" inputMode="numeric" equipmentId={equipment.id} isReadingInvalid={isReadingInvalid} onChange={(field, val) => handleFormChange(field, val)} autoFocus />
-        {!isMonthlyFee && <FormField label="Partidas de Desconto" name="descontoPartidas" value={formState.descontoPartidas} type="text" inputMode="numeric" equipmentId={equipment.id} onChange={(field, val) => handleFormChange(field, val)} />}
+        {!isMonthlyFee && <FormField label="Partidas de Desconto" name="partidasDescontadas" value={formState.partidasDescontadas} type="text" inputMode="numeric" equipmentId={equipment.id} onChange={(field, val) => handleFormChange(field, val)} />}
         {formState.relogioAtual && !isReadingInvalid && (
             <div className="mt-6 p-4 bg-slate-900/50 border border-slate-700 rounded-lg space-y-2 text-sm animate-fade-in">
                 <h4 className="text-md font-bold text-white mb-3 text-center">Resumo do Rateio</h4>
@@ -634,8 +634,8 @@ const BillingModal: React.FC<BillingModalProps> = ({ isOpen, onClose, onConfirm,
                             <span className="font-mono">{calculation.partidasJogadas || 0}</span>
                         </div>
                          <div className="flex justify-between text-slate-300">
-                            <span>Partidas Cobradas:</span>
-                            <span className="font-mono">{calculation.partidasCobradas || 0}</span>
+                            <span>Partidas Pagas:</span>
+                            <span className="font-mono">{calculation.partidasPagas || 0}</span>
                         </div>
                         <div className="flex justify-between text-slate-300">
                             <span>Parte Cliente ({equipment.parteCliente}%):</span>

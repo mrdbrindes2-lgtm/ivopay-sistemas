@@ -6,23 +6,15 @@ export const LogoIcon = ({ className }: { className?: string }) => (
     viewBox="0 0 160 100" 
     className={className} 
     xmlns="http://www.w3.org/2000/svg"
-    aria-label="Logotipo Montanha Bilhar & Jukebox"
+    aria-label="Logotipo IVOPAY SISTEMAS"
     role="img"
   >
-    {/* Icon */}
-    <g transform="translate(55, 0)">
-      <path 
-        d="M25,0 L0,25 L8,25 L25,8 L42,25 L50,25 L25,0 Z M25,38 L17,30 L25,22 L33,30 Z" 
-        fill="currentColor" 
-      />
-    </g>
-    
     {/* Text */}
     <g transform="translate(0, 50)">
       {/* Top Line */}
       <rect x="25" y="0" width="110" height="1.5" fill="currentColor" />
       
-      {/* MONTANHA */}
+      {/* IVOPAY */}
       <text 
         x="80" 
         y="18" 
@@ -33,13 +25,13 @@ export const LogoIcon = ({ className }: { className?: string }) => (
         letterSpacing="1"
         textAnchor="middle"
       >
-        MONTANHA
+        IVOPAY
       </text>
 
       {/* Bottom Line */}
       <rect x="25" y="22" width="110" height="1.5" fill="currentColor" />
 
-      {/* BILHAR&JUKEBOX */}
+      {/* SISTEMAS */}
       <text 
         x="80" 
         y="35" 
@@ -50,7 +42,7 @@ export const LogoIcon = ({ className }: { className?: string }) => (
         textAnchor="middle"
         letterSpacing="0.5"
       >
-        BILHAR&JUKEBOX
+        SISTEMAS
       </text>
     </g>
   </svg>

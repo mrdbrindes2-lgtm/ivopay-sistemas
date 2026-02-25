@@ -10,21 +10,29 @@ import { CalculatorIcon } from './icons/CalculatorIcon';
 interface BottomNavBarProps {
   currentView: View;
   setView: (view: View) => void;
+  managementTypes: string[];
 }
 
 const navItems = [
     { view: 'DASHBOARD' as View, label: 'Início', icon: HomeIcon },
     { view: 'CLIENTES' as View, label: 'Clientes', icon: UsersIcon },
-    { view: 'EQUIPAMENTOS' as View, label: 'Equips', icon: ListBulletIcon },
+    { view: 'EQUIPAMENTOS' as View, label: 'Equips', icon: ListBulletIcon, requiredManagementType: 'sinuca' },
     { view: 'COBRANCAS' as View, label: 'Cobranças', icon: ReceiptIcon },
     { view: 'DESPESAS' as View, label: 'Despesas', icon: CalculatorIcon },
 ];
 
-const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentView, setView }) => {
+const BottomNavBar: React.FC<BottomNavBarProps> = ({ currentView, setView, managementTypes }) => {
+    const filteredNavItems = navItems.filter(item => {
+        if (item.requiredManagementType) {
+            return managementTypes.includes(item.requiredManagementType);
+        }
+        return true;
+    });
+
     return (
         <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shadow-lg md:hidden z-20 no-print">
             <div className="flex justify-around items-center h-16 pb-[env(safe-area-inset-bottom)]">
-                {navItems.map(item => {
+                {filteredNavItems.map(item => {
                     const Icon = item.icon;
                     const isActive = currentView === item.view;
                     return (

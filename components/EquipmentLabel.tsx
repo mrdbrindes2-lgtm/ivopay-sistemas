@@ -21,7 +21,7 @@ const EquipmentLabel: React.FC<EquipmentLabelProps> = ({ equipment, qrCodeDataUr
     >
         <div className="text-center mb-1">
             <h1 className="font-black text-sm leading-tight tracking-tighter">
-                MONTANHA BILHAR E JUKEBOX
+                IVOPAY SISTEMAS
             </h1>
         </div>
         <img src={qrCodeDataUrl} alt="QR Code" style={{ width: 180, height: 180, margin: '4px 0' }} />

@@ -1,12 +1,13 @@
 // components/ReceiptSheet.tsx
 import React from 'react';
-import { Billing } from '../types';
+import { Billing, PixConfig } from '../types';
 import PixQrCode from './PixQrCode';
 
 interface ReceiptSheetProps {
   billing: Billing;
   isProvisional?: boolean;
   qrCodeDataUrl?: string; // For SSR/PDF printing
+  pixConfig?: PixConfig;
 }
 
 const ReceiptRow: React.FC<{label: string, value: string | number}> = ({ label, value }) => (
@@ -17,7 +18,7 @@ const ReceiptRow: React.FC<{label: string, value: string | number}> = ({ label, 
     </div>
 );
 
-const ReceiptSheet: React.FC<ReceiptSheetProps> = ({ billing, isProvisional, qrCodeDataUrl }) => {
+const ReceiptSheet: React.FC<ReceiptSheetProps> = ({ billing, isProvisional, qrCodeDataUrl, pixConfig }) => {
     const isMesa = billing.equipmentType === 'mesa';
     const isGrua = billing.equipmentType === 'grua';
     
@@ -56,7 +57,7 @@ const ReceiptSheet: React.FC<ReceiptSheetProps> = ({ billing, isProvisional, qrC
     const renderMesaJukeboxDetails = () => {
         const finalFirmaValue = billing.valorTotal - (billing.valorBonus || 0);
 
-        if (isMesa && billing.billingType === 'monthly') {
+        if (isMesa && billing.tipoCobranca === 'monthly') {
             return (
                 <>
                     <p className="font-bold">EQUIPAMENTO: MESA {billing.equipmentNumero} (MENSAL)</p>
@@ -91,8 +92,8 @@ const ReceiptSheet: React.FC<ReceiptSheetProps> = ({ billing, isProvisional, qrC
                     <>
                         <hr className="border-dashed border-black my-2" />
                         <ReceiptRow label="Partidas Jogadas:" value={billing.partidasJogadas} />
-                        <ReceiptRow label="Partidas Desconto:" value={billing.descontoPartidas || 0} />
-                        <ReceiptRow label="Partidas Cobradas:" value={billing.partidasCobradas || 0} />
+                        <ReceiptRow label="Partidas Desconto:" value={billing.partidasDescontadas || 0} />
+                        <ReceiptRow label="Partidas Pagas:" value={billing.partidasPagas || 0} />
                         <ReceiptRow label="Valor Ficha:" value={`R$ ${formatCurrencyFicha(billing.valorFicha)}`} />
                     </>
                 )}
@@ -123,7 +124,7 @@ const ReceiptSheet: React.FC<ReceiptSheetProps> = ({ billing, isProvisional, qrC
     return (
         <div className="font-bold text-sm">
             <div className="header text-center mb-4">
-                <h3 className="font-black text-lg">MONTANHA BILHAR & JUKEBOX</h3>
+                <h3 className="font-black text-lg">IVOPAY SISTEMAS</h3>
                 <p className="font-bold">{isProvisional ? 'DEMONSTRATIVO DE COBRANÇA' : 'ACERTO DE CONTAS'}</p>
                 <p>--------------------------------</p>
             </div>
@@ -167,15 +168,14 @@ const ReceiptSheet: React.FC<ReceiptSheetProps> = ({ billing, isProvisional, qrC
                 <div className="text-center mt-4">
                     <p className="font-bold">Pague com PIX</p>
                     <img src={qrCodeDataUrl} alt="PIX QR Code" style={{ width: '150px', height: '150px', margin: '8px auto', border: '4px solid black' }} />
-                    <p className="text-xs">Chave: +5543999581993</p>
+                    {pixConfig?.key && <p className="text-xs">Chave: {pixConfig.key}</p>}
                 </div>
             ) : (
                 <PixQrCode />
             )}
 
             <div className="text-center mt-4 pt-2 border-t border-dashed border-black">
-                <p className="font-bold text-xs">MONTANHA BILHAR & JUKEBOX</p>
-                <p className="text-xs">DIVERSAO LEVADO A SERIO.</p>
+                <p className="font-bold text-xs">IVOPAY SISTEMAS</p>
             </div>
         </div>
     );

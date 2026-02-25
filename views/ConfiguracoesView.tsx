@@ -4,8 +4,7 @@ import { signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth
 import { auth } from '../firebase';
 import PageHeader from '../components/PageHeader';
 import { CloudUploadIcon } from '../components/icons/CloudUploadIcon';
-// FIX: Import Theme from types.ts to break circular dependency.
-import { Theme, SavedUser } from '../types';
+import { Theme, SavedUser, EquipmentType, PixConfig, PixKeyType } from '../types';
 import { SunIcon } from '../components/icons/SunIcon';
 import { MoonIcon } from '../components/icons/MoonIcon';
 import { InstallIcon } from '../components/icons/InstallIcon';
@@ -15,6 +14,7 @@ import { UserIcon } from '../components/icons/UserIcon';
 import { XIcon } from '../components/icons/XIcon';
 import { LockClosedIcon } from '../components/icons/LockClosedIcon';
 import { DatabaseIcon } from '../components/icons/DatabaseIcon';
+import { CogIcon } from '../components/icons/CogIcon';
 
 interface ConfiguracoesViewProps {
   onExportData: () => void;
@@ -31,7 +31,23 @@ interface ConfiguracoesViewProps {
   isPrivacyModeEnabled: boolean;
   onActivatePrivacyMode: () => void;
   onDeactivatePrivacyMode: () => void;
+  managementTypes: string[];
+  onManagementTypeChange: (type: EquipmentType, checked: boolean) => void;
+  pixConfig: PixConfig;
+  onSavePixConfig: (config: PixConfig) => void;
 }
+
+const Checkbox: React.FC<{ label: string; checked: boolean; onChange: (checked: boolean) => void }> = ({ label, checked, onChange }) => (
+    <label className="flex items-center gap-3 bg-slate-100 dark:bg-slate-700/50 p-4 rounded-lg cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+        <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            className="h-5 w-5 rounded text-lime-500 focus:ring-lime-500/50 border-slate-400 dark:border-slate-500 bg-slate-200 dark:bg-slate-600"
+        />
+        <span className="font-medium text-slate-800 dark:text-slate-200">{label}</span>
+    </label>
+);
 
 const ColorPicker: React.FC<{ label: string, color: string, onChange: (color: string) => void }> = ({ label, color, onChange }) => (
     <div>
@@ -64,13 +80,43 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
   isPrivacyModeEnabled,
   onActivatePrivacyMode,
   onDeactivatePrivacyMode,
+  managementTypes,
+  onManagementTypeChange,
+  pixConfig,
+  onSavePixConfig,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [savedUsers, setSavedUsers] = useState<SavedUser[]>([]);
   const currentUserEmail = auth.currentUser?.email;
   const [storageInfo, setStorageInfo] = useState<{ usage: number; quota: number } | null>(null);
   const [isLoadingStorage, setIsLoadingStorage] = useState(true);
+  const [currentPixConfig, setCurrentPixConfig] = useState<PixConfig>(pixConfig || { keyType: '', key: '', identifier: '' });
 
+  useEffect(() => {
+    setCurrentPixConfig(pixConfig || { keyType: '', key: '', identifier: '' });
+  }, [pixConfig]);
+
+  const handleSavePix = () => {
+      if (!currentPixConfig.keyType) {
+          showNotification("Por favor, selecione um tipo de chave PIX.", "error");
+          return;
+      }
+      if (!currentPixConfig.key) {
+          showNotification("Por favor, informe a chave PIX.", "error");
+          return;
+      }
+      onSavePixConfig(currentPixConfig);
+  };
+
+  const keyPlaceholders: Record<PixKeyType, string> = {
+      'email': 'seu.email@provedor.com',
+      'cpf': '000.000.000-00',
+      'cnpj': '00.000.000/0001-00',
+      'celular': '(00) 90000-0000',
+      'aleatoria': 'Chave aleatória gerada pelo banco',
+      '': 'Selecione um tipo de chave primeiro'
+  };
+  
   useEffect(() => {
     try {
         const usersStr = localStorage.getItem('savedUsers');
@@ -123,14 +169,13 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
     if (file) {
       onMergeData(file);
     }
-    // Limpa o valor para permitir a seleção do mesmo arquivo novamente
     event.target.value = '';
   };
 
   const handleColorChange = (colorType: keyof AppThemeColors, value: string) => {
     const newColors = { ...themeColors, [colorType]: value };
     setThemeColors(newColors);
-    applyThemeColors(newColors); // Live preview
+    applyThemeColors(newColors);
   };
 
   const saveThemeColors = () => {
@@ -183,7 +228,6 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
       />
 
       <div className="space-y-12">
-        {/* Account Section */}
         <section>
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Gerenciamento de Contas</h2>
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
@@ -226,8 +270,96 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
 
             </div>
         </section>
+        
+        <section>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Pagamentos</h2>
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Configuração do PIX para Recibos</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-4">
+              Informe os dados que serão usados para gerar os QR Codes nos recibos. O valor do QR Code será aberto.
+            </p>
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div>
+                        <label htmlFor="pixKeyType" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Tipo da Chave</label>
+                        <select
+                            id="pixKeyType"
+                            value={currentPixConfig.keyType}
+                            onChange={(e) => setCurrentPixConfig({ ...currentPixConfig, keyType: e.target.value as PixKeyType, key: '' })}
+                            className="mt-1 block w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-lime-500 focus:border-lime-500 text-slate-900 dark:text-white"
+                        >
+                            <option value="">Selecione...</option>
+                            <option value="email">Email</option>
+                            <option value="cpf">CPF</option>
+                            <option value="cnpj">CNPJ</option>
+                            <option value="celular">Celular</option>
+                            <option value="aleatoria">Aleatória</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="pixIdentifier" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Identificador (Opcional)</label>
+                        <input
+                            type="text"
+                            id="pixIdentifier"
+                            value={currentPixConfig.identifier}
+                            onChange={(e) => setCurrentPixConfig({ ...currentPixConfig, identifier: e.target.value.substring(0, 25) })}
+                            placeholder="Ex: PGTOLOJA123"
+                            maxLength={25}
+                            className="mt-1 block w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-lime-500 focus:border-lime-500"
+                        />
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="pixKey" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Chave Pix</label>
+                    <input
+                        type="text"
+                        id="pixKey"
+                        value={currentPixConfig.key}
+                        onChange={(e) => setCurrentPixConfig({ ...currentPixConfig, key: e.target.value })}
+                        placeholder={keyPlaceholders[currentPixConfig.keyType || '']}
+                        disabled={!currentPixConfig.keyType}
+                        className="mt-1 block w-full bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-lime-500 focus:border-lime-500 disabled:bg-slate-200 dark:disabled:bg-slate-600/50 disabled:cursor-not-allowed"
+                    />
+                </div>
+                <div className="text-right pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <button onClick={handleSavePix} className="bg-lime-500 text-white font-bold py-2 px-6 rounded-md hover:bg-lime-600 transition-colors">
+                        Salvar Configuração PIX
+                    </button>
+                </div>
+            </div>
+          </div>
+        </section>
 
-        {/* Security Section */}
+        <section>
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Gerenciamento de Equipamentos</h2>
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                    <CogIcon className="w-6 h-6 text-slate-500" />
+                    Tipos de Equipamentos Gerenciados
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 mb-4">
+                    Selecione quais tipos de equipamentos você deseja visualizar e gerenciar no aplicativo.
+                </p>
+                <div className="space-y-3">
+                    <Checkbox
+                        label="Mesas de Sinuca"
+                        checked={managementTypes.includes('mesa')}
+                        onChange={(checked) => onManagementTypeChange('mesa', checked)}
+                    />
+                    <Checkbox
+                        label="Jukeboxes"
+                        checked={managementTypes.includes('jukebox')}
+                        onChange={(checked) => onManagementTypeChange('jukebox', checked)}
+                    />
+                    <Checkbox
+                        label="Gruas de Pelúcia"
+                        checked={managementTypes.includes('grua')}
+                        onChange={(checked) => onManagementTypeChange('grua', checked)}
+                    />
+                </div>
+            </div>
+        </section>
+
         <section>
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Segurança</h2>
           <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
@@ -255,7 +387,6 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
           </div>
         </section>
 
-        {/* Storage Section */}
         <section>
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Armazenamento</h2>
           <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
@@ -294,7 +425,6 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
           </div>
         </section>
         
-        {/* Install App Section */}
         {deferredPrompt && (
           <section>
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Instalação do Aplicativo</h2>
@@ -314,7 +444,6 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
           </section>
         )}
         
-        {/* Appearance Section */}
         <section>
           <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Aparência</h2>
           <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 mb-8">
@@ -366,7 +495,6 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
           </div>
         </section>
 
-        {/* Data Management Section */}
         <section>
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Backup e Restauração</h2>
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 mb-8">
@@ -400,7 +528,6 @@ const ConfiguracoesView: React.FC<ConfiguracoesViewProps> = ({
             </div>
         </section>
 
-         {/* Danger Zone Section */}
         <section>
             <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 border-b border-slate-200 dark:border-slate-700 pb-2">Zona de Perigo</h2>
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-lg border-2 border-red-500 dark:border-red-700">

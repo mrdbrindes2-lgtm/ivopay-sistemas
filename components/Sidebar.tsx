@@ -19,13 +19,14 @@ interface SidebarProps {
   setIsOpen: (isOpen: boolean) => void;
   onOpenScanner: () => void;
   user: User | null;
+  managementTypes: string[];
 }
 
 const navItems = [
     { view: 'DASHBOARD' as View, label: 'Dashboard', icon: HomeIcon },
     { view: 'CLIENTES' as View, label: 'Clientes', icon: UsersIcon },
     { view: 'COBRANCAS' as View, label: 'Cobranças', icon: ReceiptIcon },
-    { view: 'EQUIPAMENTOS' as View, label: 'Equipamentos', icon: ListBulletIcon },
+    { view: 'EQUIPAMENTOS' as View, label: 'Equipamentos', icon: ListBulletIcon, requiredManagementType: 'sinuca' },
     { view: 'DESPESAS' as View, label: 'Despesas', icon: CalculatorIcon },
     { view: 'ROTAS' as View, label: 'Rotas', icon: MapIcon },
     { view: 'RELATORIOS' as View, label: 'Relatórios', icon: ChartBarIcon },
@@ -35,7 +36,7 @@ const secondaryNavItems = [
     { view: 'CONFIGURACOES' as View, label: 'Configurações', icon: CogIcon },
 ]
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOpen, onOpenScanner, user }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOpen, onOpenScanner, user, managementTypes }) => {
 
     const handleViewChange = (view: View) => {
         setView(view);
@@ -67,6 +68,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOp
         );
     };
 
+    const filteredNavItems = navItems.filter(item => {
+        if (item.requiredManagementType) {
+            return managementTypes.includes(item.requiredManagementType);
+        }
+        return true;
+    });
+
 
     return (
         <>
@@ -93,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, isOpen, setIsOp
                 </div>
                 <nav className="flex-grow">
                     <ul>
-                        {navItems.map(item => <NavButton key={item.view} item={item} />)}
+                        {filteredNavItems.map(item => <NavButton key={item.view} item={item as any} />)}
                     </ul>
                 </nav>
                 <div className="mt-auto">

@@ -1,19 +1,20 @@
 // utils/receiptGenerator.ts
-import { Billing, DebtPayment, Equipment, Customer } from '../types';
+import { Billing, DebtPayment, Equipment, Customer, PixConfig } from '../types';
+import { generatePixPayload } from './pix';
 
 const formatCurrency = (value: number | undefined) => (value || 0).toFixed(2);
 const formatCurrencyFicha = (value: number | undefined) => (value || 0).toFixed(2); // Use 2 for consistency on text receipts
 
-export function generateBillingText(billing: Billing, isProvisional: boolean): string {
+export function generateBillingText(billing: Billing, isProvisional: boolean, pixConfig?: PixConfig): string {
     const isMesa = billing.equipmentType === 'mesa';
     const isGrua = billing.equipmentType === 'grua';
-    const pixKey = "43999581993";
     
     const paymentMethodText = {
         pix: 'PIX',
         dinheiro: 'DINHEIRO',
         debito_negativo: 'NEGATIVO',
         misto: 'MISTO',
+        pending_payment: 'PENDENTE'
     };
 
     let details = '';
@@ -37,14 +38,15 @@ ALUGUEL (PAGO AO CLIENTE): R$ ${formatCurrency(billing.aluguelValor)}
 *TOTAL (FIRMA): R$ ${formatCurrency(billing.valorTotal)}*
         `.trim();
     } else { // Mesa or Jukebox
+        const totalValue = (billing.valorTotal || 0) - (billing.valorBonus || 0);
         const totalSection = (billing.valorBonus && billing.valorBonus > 0)
           ? `Subtotal (Firma): R$ ${formatCurrency(billing.valorTotal)}\n` +
             `Desconto / Bonus: - R$ ${formatCurrency(billing.valorBonus)}\n` +
             `--------------------------------\n` +
-            `*TOTAL (FIRMA): R$ ${formatCurrency(billing.valorTotal - billing.valorBonus)}*`
-          : `*TOTAL (FIRMA): R$ ${formatCurrency(billing.valorTotal)}*`;
+            `*TOTAL (FIRMA): R$ ${formatCurrency(totalValue)}*`
+          : `*TOTAL (FIRMA): R$ ${formatCurrency(totalValue)}*`;
 
-        if (isMesa && billing.billingType === 'monthly') {
+        if (isMesa && billing.tipoCobranca === 'monthly') {
             details = `
 EQUIPAMENTO: MESA ${billing.equipmentNumero} (MENSAL)
 --------------------------------
@@ -57,8 +59,8 @@ ${totalSection}
             if (isMesa) {
                 mesaDetails = `
 Partidas Jogadas: ${billing.partidasJogadas}
-Partidas Desconto: ${billing.descontoPartidas || 0}
-Partidas Cobradas: ${billing.partidasCobradas || 0}
+Partidas Desconto: ${billing.partidasDescontadas || 0}
+Partidas Pagas: ${billing.partidasPagas || 0}
 Valor Ficha: R$ ${formatCurrencyFicha(billing.valorFicha)}
 --------------------------------`;
             }
@@ -83,20 +85,35 @@ ${totalSection}
             if (billing.valorPagoPix && billing.valorPagoPix > 0) parts.push(`- PIX: R$ ${formatCurrency(billing.valorPagoPix)}`);
             if (billing.valorDebitoNegativo && billing.valorDebitoNegativo > 0) parts.push(`- Negativo: R$ ${formatCurrency(billing.valorDebitoNegativo)}`);
             paymentDetails = `\nPAGAMENTO:\n${parts.join('\n')}`;
-        } else {
-            paymentDetails = `\nPagamento: PAGO ( )\n           NAO PAGO ( )`;
+        } else if (billing.paymentMethod !== 'pending_payment') {
+             paymentDetails = `\nForma de Pagamento: ${paymentMethodText[billing.paymentMethod]}`
         }
     }
 
-    const provisionalFooter = isProvisional ? `
+    let provisionalFooter = '';
+    if (isProvisional && pixConfig?.key) {
+        try {
+            const pixPayload = generatePixPayload(pixConfig, undefined, 'IVOPAY SISTEMAS', 'Jaguapita-PR');
+            provisionalFooter = `
 --------------------------------
 *Pague com PIX!*
-Chave (Celular): ${pixKey}
+${pixPayload}
 --------------------------------
 *** COMPROVANTE PARA CONFERENCIA ***
-*** SEM VALOR FISCAL ***` : '';
+*** SEM VALOR FISCAL ***`;
+        } catch (e) {
+            console.error("Could not generate PIX payload for thermal receipt:", e);
+            provisionalFooter = `
+--------------------------------
+*PIX NAO CONFIGURADO CORRETAMENTE*
+--------------------------------
+*** COMPROVANTE PARA CONFERENCIA ***
+*** SEM VALOR FISCAL ***`;
+        }
+    }
 
-    return `*MONTANHA BILHAR & JUKEBOX*
+
+    return `*IVOPAY SISTEMAS*
 ${isProvisional ? 'DEMONSTRATIVO DE COBRANÇA' : 'ACERTO DE CONTAS'}
 --------------------------------
 CLIENTE: ${billing.customerName}
@@ -109,20 +126,46 @@ ${provisionalFooter}
 }
 
 
-export function generateDebtText(debtPayment: DebtPayment): string {
+export function generateDebtText(debtPayment: DebtPayment, pixConfig?: PixConfig): string {
      const paymentMethodText = {
         pix: 'PIX',
         dinheiro: 'DINHEIRO',
+        misto: 'MISTO'
     };
     const formatCurrency = (value: number) => (value || 0).toFixed(2);
-    return `*MONTANHA BILHAR & JUKEBOX*
+
+     let paymentDetails = '';
+    if (debtPayment.paymentMethod === 'misto') {
+        let parts = [];
+        if (debtPayment.amountPaidDinheiro && debtPayment.amountPaidDinheiro > 0) parts.push(`- Dinheiro: R$ ${formatCurrency(debtPayment.amountPaidDinheiro)}`);
+        if (debtPayment.amountPaidPix && debtPayment.amountPaidPix > 0) parts.push(`- PIX: R$ ${formatCurrency(debtPayment.amountPaidPix)}`);
+        paymentDetails = `\nFORMA DE PAGAMENTO:\n${parts.join('\n')}`;
+    } else {
+        paymentDetails = `\nForma de Pagamento: ${paymentMethodText[debtPayment.paymentMethod]}`;
+    }
+
+    let pixFooter = '';
+    if (pixConfig?.key) {
+         try {
+            const pixPayload = generatePixPayload(pixConfig, debtPayment.amountPaid, 'IVOPAY SISTEMAS', 'Jaguapita-PR');
+            pixFooter = `
+--------------------------------
+*Pague com PIX!*
+${pixPayload}
+--------------------------------`;
+        } catch (e) {
+            console.error("Could not generate PIX payload for thermal receipt:", e);
+        }
+    }
+
+    return `*IVOPAY SISTEMAS*
 COMPROVANTE DE PAGAMENTO DE DIVIDA
 --------------------------------
 CLIENTE: ${debtPayment.customerName}
 DATA: ${new Date(debtPayment.paidAt).toLocaleString('pt-BR')}
 --------------------------------
-*VALOR PAGO: R$ ${formatCurrency(debtPayment.amountPaid)}*
-Pagamento: ${paymentMethodText[debtPayment.paymentMethod]}
+*VALOR PAGO: R$ ${formatCurrency(debtPayment.amountPaid)}*${paymentDetails}
+${pixFooter}
     `.trim();
 }
 
@@ -135,7 +178,7 @@ export function generateEquipmentLabelText(equipment: Equipment): string {
   
   const text = `
 ********************************
-*  MONTANHA BILHAR E JUKEBOX   *
+*      IVOPAY SISTEMAS       *
 ********************************
 
         EQUIPAMENTO
@@ -153,7 +196,7 @@ export function generateCustomerLabelText(customer: Customer): string {
   const qrData = customer.id;
   return `
 ********************************
-*  MONTANHA BILHAR E JUKEBOX   *
+*      IVOPAY SISTEMAS       *
 ********************************
 
       ETIQUETA DE CLIENTE
@@ -167,7 +210,7 @@ ${qrData}
 }
 
 export function generateCustomerShareText(customer: Customer): string {
-  let text = `*Dados do Cliente - Montanha Bilhar & Jukebox*\n\n`;
+  let text = `*Dados do Cliente - IVOPAY SISTEMAS*\n\n`;
   text += `*Nome:* ${customer.name}\n`;
   text += `*Cidade:* ${customer.cidade}\n`;
   if (customer.endereco) text += `*Endereço:* ${customer.endereco}\n`;

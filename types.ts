@@ -2,23 +2,34 @@
 export type View = 'DASHBOARD' | 'CLIENTES' | 'COBRANCAS' | 'EQUIPAMENTOS' | 'DESPESAS' | 'ROTAS' | 'RELATORIOS' | 'CONFIGURACOES';
 export type Theme = 'light' | 'dark';
 
+export type PixKeyType = 'email' | 'cpf' | 'cnpj' | 'celular' | 'aleatoria' | '';
+
+export interface PixConfig {
+  keyType: PixKeyType;
+  key: string;
+  identifier: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
   createdAt: Date;
   privacyPinHash?: string;
+  pixConfig?: PixConfig;
 }
+
+export type EquipmentType = 'mesa' | 'jukebox' | 'grua';
 
 export interface Equipment {
   id: string;
-  type: 'mesa' | 'jukebox' | 'grua';
+  type: EquipmentType;
   numero: string; // ex: "101" ou "A-05"
   relogioNumero?: string; // ex: "M-S99" ou "R-J12"
   relogioAnterior: number;
   
   // Mesa specific
-  billingType?: 'perPlay' | 'monthly';
-  monthlyFeeValue?: number;
+  tipoCobranca?: 'perPlay' | 'monthly';
+  mensalidade?: number;
   valorFicha?: number;
   parteFirma?: number;
   parteCliente?: number;
@@ -59,7 +70,7 @@ export interface Billing {
   id: string;
   customerId: string;
   customerName: string;
-  equipmentType: 'mesa' | 'jukebox' | 'grua';
+  equipmentType: EquipmentType;
   equipmentId: string;
   equipmentNumero: string;
   relogioAnterior: number;
@@ -68,9 +79,9 @@ export interface Billing {
   settledAt: Date;
   
   // Mesa specific
-  billingType?: 'perPlay' | 'monthly';
-  descontoPartidas?: number;
-  partidasCobradas?: number;
+  tipoCobranca?: 'perPlay' | 'monthly';
+  partidasDescontadas?: number;
+  partidasPagas?: number;
   valorFicha?: number;
   valorBruto?: number;
 
