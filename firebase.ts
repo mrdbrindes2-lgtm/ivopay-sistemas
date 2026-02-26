@@ -3,15 +3,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebas
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
 import { getFirestore, Timestamp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
-// Configuração do Firebase para o projeto Montanha Gestão.
+// Configuração do Firebase para o projeto Ivopay Sistemas.
 const firebaseConfig = {
-  apiKey: "AIzaSyAzgVDZm7Yke0J7x8k8AqWV3BNfByGJ_1E",
-  authDomain: "montanhagestao.firebaseapp.com",
-  projectId: "montanhagestao",
-  storageBucket: "montanhagestao.appspot.com",
-  messagingSenderId: "187113862407",
-  appId: "1:187113862407:web:36df4dde16d5316396c1a2",
-  measurementId: "G-HB03J0C56W"
+  apiKey: "AIzaSyBj2WzNpKagLjMDVTz7sxMWbXrXdTa-Hck",
+  authDomain: "ivopaysistemas-4150a.firebaseapp.com",
+  projectId: "ivopaysistemas-4150a",
+  storageBucket: "ivopaysistemas-4150a.appspot.com",
+  messagingSenderId: "228125675762",
+  appId: "1:228125675762:web:2b5037bdbf9b4dc99b806b",
+  measurementId: "G-L1X92F8ZFG"
 };
 
 // Inicializa o Firebase e exporta os serviços

@@ -320,7 +320,7 @@ const RelatoriosView: React.FC<RelatoriosViewProps> = ({ customers, billings, ex
           `}
         </head>
         <body>
-          <h1>Montanha Bilhar & Jukebox</h1>
+          <h1>Ivopay Sistemas</h1>
           <h2>${title} - Período: ${dateTitle}</h2>
           ${content}
         </body>
