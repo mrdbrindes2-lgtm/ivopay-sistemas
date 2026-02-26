@@ -1,8 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Permite que um usuário leia, atualize e crie seu próprio documento de perfil.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Permite que um usuário acesse todas as sub-coleções (customers, billings, etc.)
     match /users/{userId}/{document=**} {
-      // Um usuário pode ler e escrever apenas em seus próprios documentos.
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
